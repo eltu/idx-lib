@@ -1,0 +1,24 @@
+# Environment / secrets — never commit these
+.env
+.env.*
+*.pem
+*.key
+
+# Build artifacts
+/bin/
+*.test
+*.out
+coverage.out
+
+# Vendor
+vendor/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
