@@ -24,9 +24,9 @@ import (
 // -------------------------------------------------------------------------- //
 
 const (
-	MaxRetries      = 3
-	DefaultTimeout  = 30 * time.Second
-	KiB        int64 = 1 << (10 * (iota + 1))
+	MaxRetries           = 3
+	DefaultTimeout       = 30 * time.Second
+	KiB            int64 = 1 << (10 * (iota + 1))
 	MiB
 	GiB
 )
