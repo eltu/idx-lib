@@ -38,6 +38,7 @@
 ## Tests
 
 - Every change must pass `make check` (runs `gofmt` + `golangci-lint` + `go test ./...`).
+- **Total test coverage must not drop below 89%.** A change that lowers coverage under this threshold must not be merged.
 - Every new function gets a test. Bug fixes get a regression test.
 - Tests must be F.I.R.S.T: fast, independent, repeatable, self-validating, timely.
 
@@ -149,9 +150,16 @@ func (s *store) Insert(e Entity) error { return s.Update(e) }
 
 ### Coverage gate
 
-After every implementation, run `go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out`
-and check the total coverage. If the result is **below 89%**, inspect the uncovered lines
-(`go tool cover -html=coverage.out`) and add tests until the threshold is met.
+**89% is a hard floor.** No change may be merged if it causes total coverage to drop below this threshold.
+
+After every implementation, verify coverage:
+
+```
+go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out
+```
+
+If coverage is below 89%, inspect the uncovered lines (`go tool cover -html=coverage.out`) and
+add tests until the threshold is met.
 
 Focus new tests on the uncovered paths that carry the most risk: error branches, edge cases,
 and business rules — not trivial getters or generated code. Do not pad coverage with
@@ -162,6 +170,20 @@ low-value assertions just to hit the number.
 Prioritize: business rules, edge cases (zero / empty / max), every error path,
 concurrency and cancellation, and regressions. High coverage does not mean high
 quality — a test that only exercises the happy path has low value.
+
+## Feature Documentation
+
+Every feature must have a corresponding documentation file under `docs/features/`.
+
+- **New feature:** create `docs/features/<feature-name>.md` alongside the implementation.
+- **Changed feature:** update the existing doc to reflect the new behaviour before (or in the same commit as) the code change.
+- **Removed feature:** delete the doc file so that `docs/features/` never references code that no longer exists.
+
+The documentation must stay cohesive with `main` at all times — a doc that describes behaviour diverging from the current code on `main` is treated as a bug. Each file must cover at minimum:
+
+1. **Purpose** — what problem the feature solves.
+2. **API / Usage** — the public surface with at least one concrete example.
+3. **Limitations / known constraints** — anything a caller must be aware of.
 
 ## Dependencies
 
