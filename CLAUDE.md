@@ -1,4 +1,55 @@
 
+## Searching files
+
+**Always use `idx search --compact -e <ext> "<term>"` to search inside repository files. No exceptions.**
+
+- `idx` is a BM25 keyword search engine — it ranks documents by term relevance, not by pattern matching.
+- Pass only **literal, static text terms**. Regular expressions are not supported and must never be used.
+- Dynamic or computed query strings are not accepted. Every query must be a hardcoded literal.
+- Never use `grep`, `rg`, `ag`, `ack`, `git grep`, `awk`, `sed`, `find` or any other tool to search file contents **inside the project**. `idx` is the only permitted tool for this purpose.
+- **Only use `idx` for searches within the project repository.** For searching outside the project (system paths, external directories, command output piped through grep, etc.), use the appropriate standard tool.
+- `idx` requires the server to be running. If a search returns `✗ idx server not running`, start it with `idx server start`.
+- **Zero-result logging:** whenever an `idx search` command returns no results, append the full command to a log file at `docs/debug/<YYYYMMDD_HHMMSS>_zrp.log` (one file per session, created on the first zero-result hit of that session). This file is used for future debugging of missing index coverage. Example filename: `docs/debug/20260604_143021_zrp.log`. Each entry must be one line with the exact command that produced zero results.
+
+### Required flags on every search
+
+| Flag | Why mandatory |
+|---|---|
+| `--compact` | Produces clean, agent-readable output with no decorative header/footer. Always required. |
+| `-e <ext>` | Restricts the search to a specific file extension. Always required — never search across all file types at once. |
+
+### Optional but preferred flags
+
+| Flag | When to use |
+|---|---|
+| `-p <path>` | Add whenever the target directory or path prefix is known. Narrows results and improves relevance. |
+| `--hits` | Add when only the matching lines matter, not the surrounding context. |
+| `-c <N>` | Add when surrounding context lines are needed to understand a match. |
+| `-l` | Add when only file paths are needed, not their content. |
+| `--count` | Add when only the number of matching files matters. |
+| `--any` | Add when OR semantics are needed (match at least one term instead of all). |
+
+### Canonical command shape
+
+```bash
+# Minimum — extension always required, compact always required
+idx search --compact -e go "ParseService"
+
+# With known path prefix
+idx search --compact -e go -p internal/features "Tokenizer"
+
+# Multiple extensions
+idx search --compact -e go -e ts "SourceFile"
+
+# OR mode
+idx search --compact -e go --any "Logger TokenHandler"
+```
+
+### Rules for writing queries
+
+- **AND by default** — all terms must appear in a document. Use `--any` to switch to OR.
+- **Prefer specific terms** — BM25 ranks by relevance; a more specific term surfaces better results than a broad one.
+
 ## Code style
 
 - Functions: 4-20 lines. Split if longer.
@@ -150,8 +201,6 @@ func (s *store) Insert(e Entity) error { return s.Update(e) }
 
 ### Coverage gate
 
-**89% is a hard floor.** No change may be merged if it causes total coverage to drop below this threshold.
-
 After every implementation, verify coverage:
 
 ```
@@ -194,7 +243,7 @@ The documentation must stay cohesive with `main` at all times — a doc that des
 
 - Follow the Go project layout convention (`https://go.dev/doc/modules/layout`) and Hexagonal Architecture principles.
 - Prefer small focused modules over god files.
-- Architecture decisions must be recorded under `docs/adr/` using sequential files like `0001-short-title.md`.
+- Architecture decisions must be recorded under `docs/adr/` using sequential files like `0001-short-title.md`. See `docs/adr/README.md` for the ADR template.
 - When a change introduces a persistent technical decision or tradeoff, update an existing ADR or add a new one in `docs/adr/`.
 - Root-level ad hoc decision documents are discouraged; decision records belong in `docs/adr/`.
 - Core layout (extend with delivery layer as needed by the project type):
@@ -234,11 +283,6 @@ internal/worker/
 - Each port describes one capability (e.g. `UserRepository`, `EmailSender`, `EventPublisher`).
 - Implementations live alongside the interface in the same feature package or in a `storage/` sub-package.
 - Features do not import delivery-layer packages (HTTP routers, CLI frameworks, etc.).
-
-## Architecture Decisions
-
-Record every significant technical decision in `docs/adr/` before or alongside the implementation.
-See `docs/adr/README.md` for the ADR template.
 
 ## Formatting
 
