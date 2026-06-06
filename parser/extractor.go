@@ -38,9 +38,11 @@ func mapExtractResult(r symbols.ExtractResult) ExtractResult {
 	for i, s := range r.Symbols {
 		syms[i] = mapSymbol(s)
 	}
-	comments := make([]Comment, len(r.Comments))
-	for i, c := range r.Comments {
-		comments[i] = mapComment(c)
+	var comments []Comment
+	for _, c := range r.Comments {
+		if mapped := mapComment(c); mapped.Content != "" {
+			comments = append(comments, mapped)
+		}
 	}
 	return ExtractResult{
 		Language: Language{Name: r.LanguageID, Extension: r.Extension},
@@ -60,8 +62,7 @@ func mapSymbol(s symbols.RawSymbol) Symbol {
 
 func mapComment(c symbols.RawComment) Comment {
 	return Comment{
-		Text:      c.Text,
-		Body:      cleanCommentBody(c.Text),
+		Content:   cleanCommentBody(c.Text),
 		StartLine: c.StartLine,
 		EndLine:   c.EndLine,
 	}

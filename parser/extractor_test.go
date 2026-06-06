@@ -84,14 +84,14 @@ func TestNewSymbolExtractor_Extract_ReturnsCommentsForGoSource(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, result.Comments)
 
-	texts := make([]string, len(result.Comments))
+	contents := make([]string, len(result.Comments))
 	for i, c := range result.Comments {
-		texts[i] = c.Text
+		contents[i] = c.Content
 		assert.GreaterOrEqual(t, c.StartLine, 1)
 		assert.LessOrEqual(t, c.StartLine, c.EndLine)
 	}
-	assert.Contains(t, texts, "// top-level doc")
-	assert.Contains(t, texts, "/* block */")
+	assert.Contains(t, contents, "top-level doc")
+	assert.Contains(t, contents, "block")
 }
 
 func TestNewSymbolExtractor_Extract_ResultIsJSONSerializableWithComments(t *testing.T) {
@@ -116,10 +116,29 @@ func TestNewSymbolExtractor_Extract_ResultIsJSONSerializableWithComments(t *test
 	require.True(t, ok, "comments must be an array")
 	assert.NotEmpty(t, coms)
 
-	first := coms[0].(map[string]any)
-	assert.Contains(t, first, "text")
-	assert.Contains(t, first, "start_line")
-	assert.Contains(t, first, "end_line")
+	for _, raw := range coms {
+		entry := raw.(map[string]any)
+		assert.Contains(t, entry, "content")
+		assert.Contains(t, entry, "start_line")
+		assert.Contains(t, entry, "end_line")
+		assert.NotEmpty(t, entry["content"], "decorative comment must not appear in output")
+	}
+}
+
+func TestNewSymbolExtractor_Extract_ExcludesDecorativeComments(t *testing.T) {
+	t.Parallel()
+
+	// Arrange — source with one semantic and one decorative comment
+	e := parser.NewSymbolExtractor()
+	src := []byte("// -------------------------------------------------------------------------- //\n// useful doc\npackage foo\n")
+
+	// Act
+	result, err := e.Extract(src, ".go")
+
+	// Assert — only the semantic comment survives
+	require.NoError(t, err)
+	require.Len(t, result.Comments, 1)
+	assert.Equal(t, "useful doc", result.Comments[0].Content)
 }
 
 func TestNewSymbolExtractor_Extract_ReturnsErrorWhenContentIsEmpty(t *testing.T) {
