@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCleanCommentBody_LineCommentWithContent_ReturnsStrippedBody(t *testing.T) {
@@ -184,6 +185,76 @@ func TestStripBlockInteriorLine_AsteriskPrefixes_StripsMarker(t *testing.T) {
 			assert.Equal(t, tc.want, stripBlockInteriorLine(tc.input))
 		})
 	}
+}
+
+func TestGroupConsecutiveComments_AdjacentLines_MergesIntoSingleEntry(t *testing.T) {
+	t.Parallel()
+
+	// Arrange
+	comments := []Comment{
+		{Context: "line one", StartLine: 1, EndLine: 1},
+		{Context: "line two", StartLine: 2, EndLine: 2},
+		{Context: "line three", StartLine: 3, EndLine: 3},
+	}
+
+	// Act
+	got := groupConsecutiveComments(comments)
+
+	// Assert
+	require.Len(t, got, 1)
+	assert.Equal(t, "line one\nline two\nline three", got[0].Context)
+	assert.Equal(t, 1, got[0].StartLine)
+	assert.Equal(t, 3, got[0].EndLine)
+}
+
+func TestGroupConsecutiveComments_GapBetweenLines_KeepsSeparate(t *testing.T) {
+	t.Parallel()
+
+	// Arrange
+	comments := []Comment{
+		{Context: "first", StartLine: 1, EndLine: 1},
+		{Context: "second", StartLine: 5, EndLine: 5},
+	}
+
+	// Act
+	got := groupConsecutiveComments(comments)
+
+	// Assert
+	require.Len(t, got, 2)
+	assert.Equal(t, "first", got[0].Context)
+	assert.Equal(t, "second", got[1].Context)
+}
+
+func TestGroupConsecutiveComments_EmptySlice_ReturnsEmpty(t *testing.T) {
+	t.Parallel()
+
+	got := groupConsecutiveComments([]Comment{})
+
+	assert.Empty(t, got)
+}
+
+func TestGroupConsecutiveComments_MixedAdjacentAndGap_GroupsCorrectly(t *testing.T) {
+	t.Parallel()
+
+	// Arrange — group A (lines 1-2), gap, group B (lines 5-6), solo (line 10)
+	comments := []Comment{
+		{Context: "a1", StartLine: 1, EndLine: 1},
+		{Context: "a2", StartLine: 2, EndLine: 2},
+		{Context: "b1", StartLine: 5, EndLine: 5},
+		{Context: "b2", StartLine: 6, EndLine: 6},
+		{Context: "solo", StartLine: 10, EndLine: 10},
+	}
+
+	// Act
+	got := groupConsecutiveComments(comments)
+
+	// Assert
+	require.Len(t, got, 3)
+	assert.Equal(t, "a1\na2", got[0].Context)
+	assert.Equal(t, 1, got[0].StartLine)
+	assert.Equal(t, 2, got[0].EndLine)
+	assert.Equal(t, "b1\nb2", got[1].Context)
+	assert.Equal(t, "solo", got[2].Context)
 }
 
 func TestStripBlockComment_MultiLineJavadoc_ExtractsBodyLines(t *testing.T) {

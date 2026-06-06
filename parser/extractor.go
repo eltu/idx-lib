@@ -40,10 +40,11 @@ func mapExtractResult(r symbols.ExtractResult) ExtractResult {
 	}
 	var comments []Comment
 	for _, c := range r.Comments {
-		if mapped := mapComment(c); mapped.Content != "" {
+		if mapped := mapComment(c); mapped.Context != "" {
 			comments = append(comments, mapped)
 		}
 	}
+	comments = groupConsecutiveComments(comments)
 	return ExtractResult{
 		Language: Language{Name: r.LanguageID, Extension: r.Extension},
 		Symbols:  syms,
@@ -62,7 +63,7 @@ func mapSymbol(s symbols.RawSymbol) Symbol {
 
 func mapComment(c symbols.RawComment) Comment {
 	return Comment{
-		Content:   cleanCommentBody(c.Text),
+		Context:   cleanCommentBody(c.Text),
 		StartLine: c.StartLine,
 		EndLine:   c.EndLine,
 	}

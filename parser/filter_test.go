@@ -119,7 +119,7 @@ func TestFilter_Apply_PreservesCommentsInResult(t *testing.T) {
 	t.Parallel()
 
 	// Arrange
-	comment := parser.Comment{Content: "doc", StartLine: 1, EndLine: 1}
+	comment := parser.Comment{Context: "doc", StartLine: 1, EndLine: 1}
 	result := makeResult(makeSymbol("Foo", parser.SymbolFunction))
 	result.Comments = []parser.Comment{comment}
 

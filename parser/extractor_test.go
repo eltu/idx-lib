@@ -86,7 +86,7 @@ func TestNewSymbolExtractor_Extract_ReturnsCommentsForGoSource(t *testing.T) {
 
 	contents := make([]string, len(result.Comments))
 	for i, c := range result.Comments {
-		contents[i] = c.Content
+		contents[i] = c.Context
 		assert.GreaterOrEqual(t, c.StartLine, 1)
 		assert.LessOrEqual(t, c.StartLine, c.EndLine)
 	}
@@ -118,10 +118,10 @@ func TestNewSymbolExtractor_Extract_ResultIsJSONSerializableWithComments(t *test
 
 	for _, raw := range coms {
 		entry := raw.(map[string]any)
-		assert.Contains(t, entry, "content")
+		assert.Contains(t, entry, "context")
 		assert.Contains(t, entry, "start_line")
 		assert.Contains(t, entry, "end_line")
-		assert.NotEmpty(t, entry["content"], "decorative comment must not appear in output")
+		assert.NotEmpty(t, entry["context"], "decorative comment must not appear in output")
 	}
 }
 
@@ -138,7 +138,31 @@ func TestNewSymbolExtractor_Extract_ExcludesDecorativeComments(t *testing.T) {
 	// Assert — only the semantic comment survives
 	require.NoError(t, err)
 	require.Len(t, result.Comments, 1)
-	assert.Equal(t, "useful doc", result.Comments[0].Content)
+	assert.Equal(t, "useful doc", result.Comments[0].Context)
+}
+
+func TestNewSymbolExtractor_Extract_GroupsConsecutiveComments(t *testing.T) {
+	t.Parallel()
+
+	// Arrange — three consecutive line comments followed by a gap then one more
+	e := parser.NewSymbolExtractor()
+	src := []byte("// line one\n// line two\n// line three\npackage foo\n\n// isolated\n")
+
+	// Act
+	result, err := e.Extract(src, ".go")
+
+	// Assert
+	require.NoError(t, err)
+	require.Len(t, result.Comments, 2)
+
+	group := result.Comments[0]
+	assert.Equal(t, "line one\nline two\nline three", group.Context)
+	assert.Equal(t, 1, group.StartLine)
+	assert.Equal(t, 3, group.EndLine)
+
+	isolated := result.Comments[1]
+	assert.Equal(t, "isolated", isolated.Context)
+	assert.Equal(t, isolated.StartLine, isolated.EndLine)
 }
 
 func TestNewSymbolExtractor_Extract_ReturnsErrorWhenContentIsEmpty(t *testing.T) {

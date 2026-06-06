@@ -22,9 +22,10 @@ type Symbol struct {
 }
 
 // Comment is a comment node extracted from source code with its line range.
-// Content is the normalized text with comment delimiters stripped.
+// Context holds the normalized text with delimiters stripped; consecutive comment
+// lines are grouped into a single entry joined by newlines.
 type Comment struct {
-	Content   string `json:"content"`
+	Context   string `json:"context"`
 	StartLine int    `json:"start_line"`
 	EndLine   int    `json:"end_line"`
 }
