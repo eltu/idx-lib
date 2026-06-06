@@ -11,9 +11,17 @@ analysis, search indexing, and code-review tooling.
 ```go
 e := parser.NewSymbolExtractor()
 result, err := e.Extract(src, ".go")
-// result.Comments contains all extracted comments
+
+// Iterate all comments
 for _, c := range result.Comments {
     fmt.Printf("line %d-%d: %s\n", c.StartLine, c.EndLine, c.Text)
+}
+
+// Filter to semantic-only (skip separator lines like // ---- //)
+for _, c := range result.Comments {
+    if c.Body != "" {
+        fmt.Println(c.Body)
+    }
 }
 ```
 
@@ -22,13 +30,28 @@ JSON shape (one element of `comments` array):
 ```json
 {
   "text":       "// Package foo provides ...",
+  "body":       "Package foo provides ...",
   "start_line": 1,
   "end_line":   1
 }
 ```
 
+```json
+{
+  "text":       "// -------------------------------------------------------------------------- //",
+  "body":       "",
+  "start_line": 22,
+  "end_line":   22
+}
+```
+
 `text` is the raw source text of the comment node, including delimiters
 (`//`, `/* */`, `#`, etc.).
+
+`body` is the semantic text after stripping comment markers (`//`, `///`, `//!`,
+`#`, `/*`, `*/`, leading ` * `). `body == ""` means the comment is purely
+decorative — it contains only separator characters (`-`, `=`, `*`, `+`, `|`,
+`/`, `#`, space) and carries no semantic content.
 
 ## Supported languages and node types
 

@@ -22,8 +22,10 @@ type Symbol struct {
 }
 
 // Comment is a comment node extracted from source code with its line range.
+// Body contains the semantic text with comment delimiters stripped; empty means purely decorative.
 type Comment struct {
 	Text      string `json:"text"`
+	Body      string `json:"body"`
 	StartLine int    `json:"start_line"`
 	EndLine   int    `json:"end_line"`
 }

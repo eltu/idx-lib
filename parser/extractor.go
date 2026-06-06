@@ -61,6 +61,7 @@ func mapSymbol(s symbols.RawSymbol) Symbol {
 func mapComment(c symbols.RawComment) Comment {
 	return Comment{
 		Text:      c.Text,
+		Body:      cleanCommentBody(c.Text),
 		StartLine: c.StartLine,
 		EndLine:   c.EndLine,
 	}
