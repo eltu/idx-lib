@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/block_grep.py",
+            "statusMessage": "Verificando uso de grep..."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -6,7 +6,7 @@
 - `idx` is a BM25 keyword search engine — it ranks documents by term relevance, not by pattern matching.
 - Pass only **literal, static text terms**. Regular expressions are not supported and must never be used.
 - Dynamic or computed query strings are not accepted. Every query must be a hardcoded literal.
-- Never use `grep`, `rg`, `ag`, `ack`, `git grep`, `awk`, `sed`, `find` or any other tool to search file contents **inside the project**. `idx` is the only permitted tool for this purpose.
+- **Never use `grep`, `rg`, `ag`, `ack`, `git grep`, `awk`, `sed`, `find` or any other tool to search file contents inside the project.** A `PreToolUse` hook in `.claude/settings.json` will block any Bash command that uses these tools for file search and remind you to use `idx search` instead.
 - **Only use `idx` for searches within the project repository.** For searching outside the project (system paths, external directories, command output piped through grep, etc.), use the appropriate standard tool.
 - `idx` requires the server to be running. If a search returns `✗ idx server not running`, start it with `idx server start`.
 - **Zero-result logging:** whenever an `idx search` command returns no results, append the full command to a log file at `docs/debug/<YYYYMMDD_HHMMSS>_zrp.log` (one file per session, created on the first zero-result hit of that session). This file is used for future debugging of missing index coverage. Example filename: `docs/debug/20260604_143021_zrp.log`. Each entry must be one line with the exact command that produced zero results.
