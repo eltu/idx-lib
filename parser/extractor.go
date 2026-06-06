@@ -38,9 +38,14 @@ func mapExtractResult(r symbols.ExtractResult) ExtractResult {
 	for i, s := range r.Symbols {
 		syms[i] = mapSymbol(s)
 	}
+	comments := make([]Comment, len(r.Comments))
+	for i, c := range r.Comments {
+		comments[i] = mapComment(c)
+	}
 	return ExtractResult{
 		Language: Language{Name: r.LanguageID, Extension: r.Extension},
 		Symbols:  syms,
+		Comments: comments,
 	}
 }
 
@@ -50,5 +55,13 @@ func mapSymbol(s symbols.RawSymbol) Symbol {
 		Kind:      SymbolKind(s.Kind),
 		StartLine: s.StartLine,
 		EndLine:   s.EndLine,
+	}
+}
+
+func mapComment(c symbols.RawComment) Comment {
+	return Comment{
+		Text:      c.Text,
+		StartLine: c.StartLine,
+		EndLine:   c.EndLine,
 	}
 }

@@ -115,6 +115,22 @@ func TestFilter_Apply_IsCaseInsensitiveForName(t *testing.T) {
 	}
 }
 
+func TestFilter_Apply_PreservesCommentsInResult(t *testing.T) {
+	t.Parallel()
+
+	// Arrange
+	comment := parser.Comment{Text: "// doc", StartLine: 1, EndLine: 1}
+	result := makeResult(makeSymbol("Foo", parser.SymbolFunction))
+	result.Comments = []parser.Comment{comment}
+
+	// Act
+	got := parser.Filter{Kinds: []parser.SymbolKind{parser.SymbolClass}}.Apply(result)
+
+	// Assert
+	assert.Empty(t, got.Symbols)
+	assert.Equal(t, result.Comments, got.Comments)
+}
+
 func TestFilter_Apply_PreservesLanguageInResult(t *testing.T) {
 	t.Parallel()
 

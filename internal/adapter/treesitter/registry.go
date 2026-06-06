@@ -21,10 +21,11 @@ var queryFiles embed.FS
 
 const queryDir = "queries/"
 
-// langConfig holds the compiled grammar and query for a single language.
+// langConfig holds the compiled grammar and queries for a single language.
 type langConfig struct {
-	grammar *sitter.Language
-	query   *sitter.Query
+	grammar      *sitter.Language
+	query        *sitter.Query
+	commentQuery *sitter.Query
 }
 
 // Registry maps language IDs to their tree-sitter grammar and compiled query.
@@ -40,13 +41,13 @@ type Registry struct {
 //	reg := treesitter.NewRegistry()
 func NewRegistry() *Registry {
 	r := &Registry{configs: make(map[lang.ID]langConfig)}
-	r.mustRegister(lang.Go, golang.GetLanguage(), "go.scm")
-	r.mustRegister(lang.Python, python.GetLanguage(), "python.scm")
-	r.mustRegister(lang.JavaScript, javascript.GetLanguage(), "javascript.scm")
-	r.mustRegister(lang.TypeScript, typescript.GetLanguage(), "typescript.scm")
-	r.mustRegister(lang.Java, java.GetLanguage(), "java.scm")
-	r.mustRegister(lang.Ruby, ruby.GetLanguage(), "ruby.scm")
-	r.mustRegister(lang.Rust, rust.GetLanguage(), "rust.scm")
+	r.mustRegister(lang.Go, golang.GetLanguage(), "go.scm", "go_comments.scm")
+	r.mustRegister(lang.Python, python.GetLanguage(), "python.scm", "python_comments.scm")
+	r.mustRegister(lang.JavaScript, javascript.GetLanguage(), "javascript.scm", "javascript_comments.scm")
+	r.mustRegister(lang.TypeScript, typescript.GetLanguage(), "typescript.scm", "typescript_comments.scm")
+	r.mustRegister(lang.Java, java.GetLanguage(), "java.scm", "java_comments.scm")
+	r.mustRegister(lang.Ruby, ruby.GetLanguage(), "ruby.scm", "ruby_comments.scm")
+	r.mustRegister(lang.Rust, rust.GetLanguage(), "rust.scm", "rust_comments.scm")
 	return r
 }
 
@@ -56,14 +57,20 @@ func (r *Registry) Config(id lang.ID) (langConfig, bool) {
 	return c, ok
 }
 
-func (r *Registry) mustRegister(id lang.ID, grammar *sitter.Language, filename string) {
+func (r *Registry) mustRegister(id lang.ID, grammar *sitter.Language, symbolFile, commentFile string) {
+	q := r.mustCompileQuery(grammar, symbolFile)
+	cq := r.mustCompileQuery(grammar, commentFile)
+	r.configs[id] = langConfig{grammar: grammar, query: q, commentQuery: cq}
+}
+
+func (r *Registry) mustCompileQuery(grammar *sitter.Language, filename string) *sitter.Query {
 	raw, err := queryFiles.ReadFile(queryDir + filename)
 	if err != nil {
 		panic(fmt.Sprintf("treesitter: missing query file %q: %v", filename, err))
 	}
 	q, err := sitter.NewQuery(raw, grammar)
 	if err != nil {
-		panic(fmt.Sprintf("treesitter: invalid query for %q: %v", id, err))
+		panic(fmt.Sprintf("treesitter: invalid query in %q: %v", filename, err))
 	}
-	r.configs[id] = langConfig{grammar: grammar, query: q}
+	return q
 }

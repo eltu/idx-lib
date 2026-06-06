@@ -30,7 +30,7 @@ func (s *ExtractService) Extract(file lang.SourceFile) (ExtractResult, error) {
 		return ExtractResult{}, fmt.Errorf("source content must not be empty")
 	}
 	langID := s.detector.Detect(file)
-	syms, err := s.extractor.Extract(file, langID)
+	syms, comments, err := s.extractor.Extract(file, langID)
 	if err != nil {
 		return ExtractResult{}, fmt.Errorf("extract %q: %w", string(langID), err)
 	}
@@ -38,5 +38,6 @@ func (s *ExtractService) Extract(file lang.SourceFile) (ExtractResult, error) {
 		LanguageID: string(langID),
 		Extension:  file.Extension,
 		Symbols:    syms,
+		Comments:   comments,
 	}, nil
 }

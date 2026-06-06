@@ -33,6 +33,26 @@ func TestExtractService_Extract_ReturnsSymbolsForValidSource(t *testing.T) {
 	assert.Equal(t, sym, result.Symbols[0])
 }
 
+func TestExtractService_Extract_ReturnsCommentsForValidSource(t *testing.T) {
+	t.Parallel()
+
+	// Arrange
+	file := lang.SourceFile{Content: []byte("// hello\nfunc Foo() {}"), Extension: ".go"}
+	comment := symbols.RawComment{Text: "// hello", StartLine: 1, EndLine: 1}
+	svc := symbols.NewExtractService(
+		&fakeDetector{id: lang.Go},
+		&fakeExtractor{comments: []symbols.RawComment{comment}},
+	)
+
+	// Act
+	result, err := svc.Extract(file)
+
+	// Assert
+	require.NoError(t, err)
+	assert.Len(t, result.Comments, 1)
+	assert.Equal(t, comment, result.Comments[0])
+}
+
 func TestExtractService_Extract_ReturnsErrorWhenContentIsEmpty(t *testing.T) {
 	t.Parallel()
 
@@ -108,10 +128,11 @@ func (f *fakeDetector) Detect(_ lang.SourceFile) lang.ID { return f.id }
 
 // fakeExtractor is a test double for symbols.Extractor.
 type fakeExtractor struct {
-	syms []symbols.RawSymbol
-	err  error
+	syms     []symbols.RawSymbol
+	comments []symbols.RawComment
+	err      error
 }
 
-func (f *fakeExtractor) Extract(_ lang.SourceFile, _ lang.ID) ([]symbols.RawSymbol, error) {
-	return f.syms, f.err
+func (f *fakeExtractor) Extract(_ lang.SourceFile, _ lang.ID) ([]symbols.RawSymbol, []symbols.RawComment, error) {
+	return f.syms, f.comments, f.err
 }

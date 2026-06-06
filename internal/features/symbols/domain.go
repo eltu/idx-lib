@@ -21,9 +21,17 @@ type RawSymbol struct {
 	EndLine   int
 }
 
+// RawComment is a comment node extracted from source code before public mapping.
+type RawComment struct {
+	Text      string
+	StartLine int
+	EndLine   int
+}
+
 // ExtractResult holds the internal output of the symbol extraction pipeline.
 type ExtractResult struct {
 	LanguageID string
 	Extension  string
 	Symbols    []RawSymbol
+	Comments   []RawComment
 }

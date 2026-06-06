@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	captureName   = "name"
-	capturePrefix = "definition."
+	captureName    = "name"
+	capturePrefix  = "definition."
+	captureComment = "comment"
 )
 
 // Extractor extracts named symbols from source using tree-sitter.
@@ -29,21 +30,23 @@ func NewExtractor(registry *Registry) *Extractor {
 	return &Extractor{registry: registry}
 }
 
-// Extract parses file using the grammar for langID and returns all named symbols.
-// Returns nil (no error) for unsupported languages.
+// Extract parses file using the grammar for langID and returns all named symbols and comments.
+// Returns nil slices (no error) for unsupported languages.
 // Example:
 //
-//	syms, err := ext.Extract(lang.SourceFile{Content: src, Extension: ".go"}, lang.Go)
-func (e *Extractor) Extract(file lang.SourceFile, langID lang.ID) ([]symbols.RawSymbol, error) {
+//	syms, comments, err := ext.Extract(lang.SourceFile{Content: src, Extension: ".go"}, lang.Go)
+func (e *Extractor) Extract(file lang.SourceFile, langID lang.ID) ([]symbols.RawSymbol, []symbols.RawComment, error) {
 	cfg, ok := e.registry.Config(langID)
 	if !ok {
-		return nil, nil
+		return nil, nil, nil
 	}
 	root, err := sitter.ParseCtx(context.Background(), file.Content, cfg.grammar)
 	if err != nil {
-		return nil, fmt.Errorf("parse %q: %w", langID, err)
+		return nil, nil, fmt.Errorf("parse %q: %w", langID, err)
 	}
-	return collectSymbols(cfg.query, root, file.Content), nil
+	syms := collectSymbols(cfg.query, root, file.Content)
+	comments := collectComments(cfg.commentQuery, root, file.Content)
+	return syms, comments, nil
 }
 
 func collectSymbols(q *sitter.Query, root *sitter.Node, src []byte) []symbols.RawSymbol {
@@ -91,6 +94,31 @@ func matchToSymbol(m *sitter.QueryMatch, q *sitter.Query, src []byte) *symbols.R
 func nodeLines(n *sitter.Node) (start, end int) {
 	// tree-sitter rows are 0-indexed; convert to 1-indexed line numbers.
 	return int(n.StartPoint().Row) + 1, int(n.EndPoint().Row) + 1
+}
+
+func collectComments(q *sitter.Query, root *sitter.Node, src []byte) []symbols.RawComment {
+	qc := sitter.NewQueryCursor()
+	defer qc.Close()
+	qc.Exec(q, root)
+
+	var result []symbols.RawComment
+	for {
+		match, ok := qc.NextMatch()
+		if !ok {
+			break
+		}
+		for _, cap := range match.Captures {
+			if q.CaptureNameForId(cap.Index) == captureComment {
+				start, end := nodeLines(cap.Node)
+				result = append(result, symbols.RawComment{
+					Text:      cap.Node.Content(src),
+					StartLine: start,
+					EndLine:   end,
+				})
+			}
+		}
+	}
+	return result
 }
 
 func captureNameToKind(suffix string) symbols.Kind {

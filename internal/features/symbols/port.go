@@ -2,10 +2,10 @@ package symbols
 
 import "github.com/eltu/idx-lib/internal/features/lang"
 
-// Extractor extracts named symbols from source for a given language.
+// Extractor extracts named symbols and comments from source for a given language.
 // Example:
 //
-//	syms, err := e.Extract(file, lang.Go)
+//	syms, comments, err := e.Extract(file, lang.Go)
 type Extractor interface {
-	Extract(file lang.SourceFile, langID lang.ID) ([]RawSymbol, error)
+	Extract(file lang.SourceFile, langID lang.ID) ([]RawSymbol, []RawComment, error)
 }

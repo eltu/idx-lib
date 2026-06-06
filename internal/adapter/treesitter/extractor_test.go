@@ -20,11 +20,12 @@ func TestTreeSitterExtractor_Extract_ReturnsNilForUnknownLanguage(t *testing.T) 
 	file := lang.SourceFile{Content: []byte("anything"), Extension: ".xyz"}
 
 	// Act
-	syms, err := ext.Extract(file, lang.Unknown)
+	syms, comments, err := ext.Extract(file, lang.Unknown)
 
 	// Assert
 	require.NoError(t, err)
 	assert.Nil(t, syms)
+	assert.Nil(t, comments)
 }
 
 func TestTreeSitterExtractor_Extract_SymbolsHaveValidLineRanges(t *testing.T) {
@@ -56,7 +57,7 @@ func TestTreeSitterExtractor_Extract_SymbolsHaveValidLineRanges(t *testing.T) {
 			file := lang.SourceFile{Content: src, Extension: "." + tc.ext}
 
 			// Act
-			syms, err := ext.Extract(file, tc.id)
+			syms, comments, err := ext.Extract(file, tc.id)
 
 			// Assert
 			require.NoError(t, err)
@@ -65,6 +66,12 @@ func TestTreeSitterExtractor_Extract_SymbolsHaveValidLineRanges(t *testing.T) {
 				assert.NotEmpty(t, s.Name, "symbol name must not be empty")
 				assert.GreaterOrEqual(t, s.StartLine, 1, "StartLine must be ≥ 1")
 				assert.LessOrEqual(t, s.StartLine, s.EndLine, "StartLine must be ≤ EndLine")
+			}
+			assert.NotEmpty(t, comments, "expected comments for %s", tc.name)
+			for _, c := range comments {
+				assert.NotEmpty(t, c.Text, "comment text must not be empty")
+				assert.GreaterOrEqual(t, c.StartLine, 1, "comment StartLine must be ≥ 1")
+				assert.LessOrEqual(t, c.StartLine, c.EndLine, "comment StartLine must be ≤ EndLine")
 			}
 		})
 	}
@@ -77,7 +84,7 @@ func TestTreeSitterExtractor_Extract_ContainsExpectedGoSymbols(t *testing.T) {
 	src := fixtures.MustReadFile("go")
 
 	// Act
-	syms, err := ext.Extract(lang.SourceFile{Content: src, Extension: ".go"}, lang.Go)
+	syms, _, err := ext.Extract(lang.SourceFile{Content: src, Extension: ".go"}, lang.Go)
 
 	// Assert
 	require.NoError(t, err)
@@ -112,7 +119,7 @@ func TestTreeSitterExtractor_Extract_ContainsExpectedPythonSymbols(t *testing.T)
 
 	ext := treesitter.NewExtractor(treesitter.NewRegistry())
 	src := fixtures.MustReadFile("py")
-	syms, err := ext.Extract(lang.SourceFile{Content: src, Extension: ".py"}, lang.Python)
+	syms, _, err := ext.Extract(lang.SourceFile{Content: src, Extension: ".py"}, lang.Python)
 
 	require.NoError(t, err)
 
@@ -142,7 +149,7 @@ func TestTreeSitterExtractor_Extract_ContainsExpectedRustSymbols(t *testing.T) {
 
 	ext := treesitter.NewExtractor(treesitter.NewRegistry())
 	src := fixtures.MustReadFile("rs")
-	syms, err := ext.Extract(lang.SourceFile{Content: src, Extension: ".rs"}, lang.Rust)
+	syms, _, err := ext.Extract(lang.SourceFile{Content: src, Extension: ".rs"}, lang.Rust)
 
 	require.NoError(t, err)
 
@@ -174,7 +181,7 @@ func TestTreeSitterExtractor_Extract_ContainsExpectedJavaSymbols(t *testing.T) {
 
 	ext := treesitter.NewExtractor(treesitter.NewRegistry())
 	src := fixtures.MustReadFile("java")
-	syms, err := ext.Extract(lang.SourceFile{Content: src, Extension: ".java"}, lang.Java)
+	syms, _, err := ext.Extract(lang.SourceFile{Content: src, Extension: ".java"}, lang.Java)
 
 	require.NoError(t, err)
 
@@ -202,7 +209,7 @@ func TestTreeSitterExtractor_Extract_ContainsExpectedRubySymbols(t *testing.T) {
 
 	ext := treesitter.NewExtractor(treesitter.NewRegistry())
 	src := fixtures.MustReadFile("rb")
-	syms, err := ext.Extract(lang.SourceFile{Content: src, Extension: ".rb"}, lang.Ruby)
+	syms, _, err := ext.Extract(lang.SourceFile{Content: src, Extension: ".rb"}, lang.Ruby)
 
 	require.NoError(t, err)
 
@@ -223,6 +230,71 @@ func TestTreeSitterExtractor_Extract_ContainsExpectedRubySymbols(t *testing.T) {
 			assertContainsSymbol(t, syms, tc.name, tc.kind)
 		})
 	}
+}
+
+func TestTreeSitterExtractor_Extract_CommentsHaveValidLineRangesAndText(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		ext  string
+		id   lang.ID
+	}{
+		{"Go", "go", lang.Go},
+		{"Python", "py", lang.Python},
+		{"JavaScript", "js", lang.JavaScript},
+		{"TypeScript", "ts", lang.TypeScript},
+		{"Java", "java", lang.Java},
+		{"Ruby", "rb", lang.Ruby},
+		{"Rust", "rs", lang.Rust},
+	}
+
+	ext := treesitter.NewExtractor(treesitter.NewRegistry())
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Arrange
+			src := fixtures.MustReadFile(tc.ext)
+			file := lang.SourceFile{Content: src, Extension: "." + tc.ext}
+
+			// Act
+			_, comments, err := ext.Extract(file, tc.id)
+
+			// Assert
+			require.NoError(t, err)
+			assert.NotEmpty(t, comments, "expected comments for %s", tc.name)
+			for _, c := range comments {
+				assert.NotEmpty(t, c.Text, "comment text must not be empty")
+				assert.GreaterOrEqual(t, c.StartLine, 1, "StartLine must be ≥ 1")
+				assert.LessOrEqual(t, c.StartLine, c.EndLine, "StartLine must be ≤ EndLine")
+			}
+		})
+	}
+}
+
+func TestTreeSitterExtractor_Extract_GoCommentTextMatchesSource(t *testing.T) {
+	t.Parallel()
+
+	// Arrange
+	src := []byte("// Package doc\npackage foo\n\n/* block */\n")
+	ext := treesitter.NewExtractor(treesitter.NewRegistry())
+	file := lang.SourceFile{Content: src, Extension: ".go"}
+
+	// Act
+	_, comments, err := ext.Extract(file, lang.Go)
+
+	// Assert
+	require.NoError(t, err)
+	require.Len(t, comments, 2)
+	assert.Equal(t, "// Package doc", comments[0].Text)
+	assert.Equal(t, 1, comments[0].StartLine)
+	assert.Equal(t, 1, comments[0].EndLine)
+	assert.Equal(t, "/* block */", comments[1].Text)
+	assert.Equal(t, 4, comments[1].StartLine)
+	assert.Equal(t, 4, comments[1].EndLine)
 }
 
 // assertContainsSymbol fails the test if no symbol with the given name and kind exists.

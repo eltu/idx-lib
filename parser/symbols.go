@@ -21,8 +21,16 @@ type Symbol struct {
 	EndLine   int        `json:"end_line"`
 }
 
+// Comment is a comment node extracted from source code with its line range.
+type Comment struct {
+	Text      string `json:"text"`
+	StartLine int    `json:"start_line"`
+	EndLine   int    `json:"end_line"`
+}
+
 // ExtractResult holds the structured output of symbol extraction.
 type ExtractResult struct {
-	Language Language `json:"language"`
-	Symbols  []Symbol `json:"symbols"`
+	Language Language  `json:"language"`
+	Symbols  []Symbol  `json:"symbols"`
+	Comments []Comment `json:"comments"`
 }
