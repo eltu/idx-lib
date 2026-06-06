@@ -2,8 +2,8 @@ package parser
 
 // Language identifies a programming language detected in source code.
 type Language struct {
-	Name      string
-	Extension string
+	Name      string `json:"name"`
+	Extension string `json:"extension"`
 }
 
 // TokenKind classifies what a Token represents.

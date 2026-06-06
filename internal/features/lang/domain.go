@@ -8,6 +8,9 @@ const (
 	Python     ID = "python"
 	JavaScript ID = "javascript"
 	TypeScript ID = "typescript"
+	Java       ID = "java"
+	Ruby       ID = "ruby"
+	Rust       ID = "rust"
 	Unknown    ID = "unknown"
 )
 

@@ -8,3 +8,12 @@ package parser
 type Parser interface {
 	Parse(src []byte) (Result, error)
 }
+
+// SymbolExtractor extracts named constructs from source code with their line ranges.
+// Example:
+//
+//	e := somepkg.NewSymbolExtractor()
+//	result, err := e.Extract(src, ".go")
+type SymbolExtractor interface {
+	Extract(src []byte, ext string) (ExtractResult, error)
+}
