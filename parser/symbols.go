@@ -32,6 +32,7 @@ type Comment struct {
 
 // ExtractResult holds the structured output of symbol extraction.
 type ExtractResult struct {
+	FilePath string    `json:"file_path"`
 	Language Language  `json:"language"`
 	Symbols  []Symbol  `json:"symbols"`
 	Comments []Comment `json:"comments"`

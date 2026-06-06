@@ -145,6 +145,20 @@ func TestFilter_Apply_PreservesLanguageInResult(t *testing.T) {
 	assert.Empty(t, got.Symbols)
 }
 
+func TestFilter_Apply_PreservesFilePathInResult(t *testing.T) {
+	t.Parallel()
+
+	// Arrange
+	result := makeResult(makeSymbol("Foo", parser.SymbolFunction))
+	result.FilePath = "/repo/internal/features/auth/service.go"
+
+	// Act
+	got := parser.Filter{Kinds: []parser.SymbolKind{parser.SymbolClass}}.Apply(result)
+
+	// Assert
+	assert.Equal(t, result.FilePath, got.FilePath)
+}
+
 func TestFilter_Apply_AcceptsMultipleKinds(t *testing.T) {
 	t.Parallel()
 

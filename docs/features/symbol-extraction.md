@@ -18,7 +18,7 @@ func NewUser(id, name string) (*User, error) { ... }
 type User struct { ... }
 `)
 
-result, err := e.Extract(src, ".go")
+result, err := e.Extract(src, "/repo/internal/features/user/service.go")
 if err != nil {
     log.Fatal(err)
 }
@@ -32,6 +32,7 @@ Example output:
 
 ```json
 {
+  "file_path": "/repo/internal/features/user/service.go",
   "language": { "name": "go", "extension": ".go" },
   "symbols": [
     { "name": "NewUser", "kind": "function", "start_line": 2, "end_line": 2 },

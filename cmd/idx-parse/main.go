@@ -14,7 +14,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/eltu/idx-lib/parser"
@@ -44,9 +43,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	ext := filepath.Ext(args.file)
 	e := parser.NewSymbolExtractor()
-	result, err := e.Extract(src, ext)
+	result, err := e.Extract(src, args.file)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error parsing:", err)
 		os.Exit(1)

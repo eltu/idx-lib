@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"path/filepath"
+
 	"github.com/eltu/idx-lib/internal/adapter/treesitter"
 	"github.com/eltu/idx-lib/internal/features/lang"
 	"github.com/eltu/idx-lib/internal/features/symbols"
@@ -24,13 +26,15 @@ type symbolExtractorAdapter struct {
 	svc *symbols.ExtractService
 }
 
-func (a *symbolExtractorAdapter) Extract(src []byte, ext string) (ExtractResult, error) {
-	file := lang.SourceFile{Content: src, Extension: ext}
+func (a *symbolExtractorAdapter) Extract(src []byte, filePath string) (ExtractResult, error) {
+	file := lang.SourceFile{Content: src, Extension: filepath.Ext(filePath)}
 	internal, err := a.svc.Extract(file)
 	if err != nil {
 		return ExtractResult{}, err
 	}
-	return mapExtractResult(internal), nil
+	r := mapExtractResult(internal)
+	r.FilePath = filePath
+	return r, nil
 }
 
 func mapExtractResult(r symbols.ExtractResult) ExtractResult {

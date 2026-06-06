@@ -19,12 +19,28 @@ func TestNewSymbolExtractor_Extract_ReturnsSymbolsForGoSource(t *testing.T) {
 	src := fixtures.MustReadFile("go")
 
 	// Act
-	result, err := e.Extract(src, ".go")
+	result, err := e.Extract(src, "sample.go")
 
 	// Assert
 	require.NoError(t, err)
 	assert.NotEmpty(t, result.Symbols)
 	assert.Equal(t, "go", result.Language.Name)
+}
+
+func TestNewSymbolExtractor_Extract_PopulatesFilePath(t *testing.T) {
+	t.Parallel()
+
+	// Arrange
+	e := parser.NewSymbolExtractor()
+	src := fixtures.MustReadFile("go")
+	const path = "/repo/internal/features/auth/service.go"
+
+	// Act
+	result, err := e.Extract(src, path)
+
+	// Assert
+	require.NoError(t, err)
+	assert.Equal(t, path, result.FilePath)
 }
 
 func TestNewSymbolExtractor_Extract_ResultIsJSONSerializable(t *testing.T) {
@@ -35,7 +51,7 @@ func TestNewSymbolExtractor_Extract_ResultIsJSONSerializable(t *testing.T) {
 	src := fixtures.MustReadFile("go")
 
 	// Act
-	result, err := e.Extract(src, ".go")
+	result, err := e.Extract(src, "sample.go")
 	require.NoError(t, err)
 
 	// Assert — result must marshal to valid JSON with expected fields
@@ -63,7 +79,7 @@ func TestNewSymbolExtractor_Extract_ReturnsEmptyForUnsupportedExtension(t *testi
 	e := parser.NewSymbolExtractor()
 
 	// Act
-	result, err := e.Extract([]byte("anything"), ".dart")
+	result, err := e.Extract([]byte("anything"), "sample.dart")
 
 	// Assert
 	require.NoError(t, err)
@@ -78,7 +94,7 @@ func TestNewSymbolExtractor_Extract_ReturnsCommentsForGoSource(t *testing.T) {
 	src := []byte("// top-level doc\npackage foo\n\n/* block */\n")
 
 	// Act
-	result, err := e.Extract(src, ".go")
+	result, err := e.Extract(src, "sample.go")
 
 	// Assert
 	require.NoError(t, err)
@@ -102,7 +118,7 @@ func TestNewSymbolExtractor_Extract_ResultIsJSONSerializableWithComments(t *test
 	src := fixtures.MustReadFile("go")
 
 	// Act
-	result, err := e.Extract(src, ".go")
+	result, err := e.Extract(src, "sample.go")
 	require.NoError(t, err)
 
 	// Assert — comments field present and each entry has expected keys
@@ -133,7 +149,7 @@ func TestNewSymbolExtractor_Extract_ExcludesDecorativeComments(t *testing.T) {
 	src := []byte("// -------------------------------------------------------------------------- //\n// useful doc\npackage foo\n")
 
 	// Act
-	result, err := e.Extract(src, ".go")
+	result, err := e.Extract(src, "sample.go")
 
 	// Assert — only the semantic comment survives
 	require.NoError(t, err)
@@ -149,7 +165,7 @@ func TestNewSymbolExtractor_Extract_GroupsConsecutiveComments(t *testing.T) {
 	src := []byte("// line one\n// line two\n// line three\npackage foo\n\n// isolated\n")
 
 	// Act
-	result, err := e.Extract(src, ".go")
+	result, err := e.Extract(src, "sample.go")
 
 	// Assert
 	require.NoError(t, err)

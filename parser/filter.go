@@ -26,7 +26,7 @@ func (f Filter) Apply(result ExtractResult) ExtractResult {
 			filtered = append(filtered, s)
 		}
 	}
-	return ExtractResult{Language: result.Language, Symbols: filtered, Comments: result.Comments}
+	return ExtractResult{FilePath: result.FilePath, Language: result.Language, Symbols: filtered, Comments: result.Comments}
 }
 
 func (f Filter) matches(s Symbol) bool {

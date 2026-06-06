@@ -13,7 +13,7 @@ type Parser interface {
 // Example:
 //
 //	e := somepkg.NewSymbolExtractor()
-//	result, err := e.Extract(src, ".go")
+//	result, err := e.Extract(src, "/path/to/file.go")
 type SymbolExtractor interface {
-	Extract(src []byte, ext string) (ExtractResult, error)
+	Extract(src []byte, filePath string) (ExtractResult, error)
 }
