@@ -6,9 +6,9 @@ A Go library that provides a **language-agnostic interface for parsing source co
 
 ## Features
 
-- Unified `Parser` interface for any supported programming language
-- Language auto-detection from file extension or content
-- Token-level output with kind classification (`keyword`, `identifier`, `literal`, `operator`, `comment`)
+- Symbol extraction (functions, methods, structs, classes, interfaces, enums, modules) with line ranges
+- Language auto-detection from file extension
+- Composable `Filter` to narrow results by kind and/or name substring
 - Hexagonal architecture — swap grammar implementations without touching business logic
 - Test corpus of 25 language fixture files for integration and end-to-end testing
 
@@ -33,23 +33,42 @@ go get github.com/eltu/idx-lib
 
 ```go
 import (
+    "fmt"
+    "log"
+    "os"
+
     "github.com/eltu/idx-lib/parser"
-    "github.com/eltu/idx-lib/internal/features/lang"
 )
 
-// Wire up your Detector and Tokenizer implementations.
-svc := lang.NewParseService(detector, tokenizer)
-
-result, err := svc.Parse(lang.SourceFile{
-    Content:   []byte(`package main\n\nfunc main() {}`),
-    Extension: ".go",
-})
+src, err := os.ReadFile("service.go")
 if err != nil {
     log.Fatal(err)
 }
 
-fmt.Println(result.LanguageID)   // "go"
-fmt.Println(len(result.Tokens))  // number of tokens found
+e := parser.NewSymbolExtractor()
+result, err := e.Extract(src, "service.go")
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Println(result.Language.Name) // "go"
+
+for _, sym := range result.Symbols {
+    fmt.Printf("%s %s (lines %d–%d)\n", sym.Kind, sym.Name, sym.StartLine, sym.EndLine)
+}
+```
+
+### Filtering symbols
+
+```go
+fns := parser.Filter{
+    Kinds:        []parser.SymbolKind{parser.SymbolFunction},
+    NameContains: "user",
+}.Apply(result)
+
+for _, sym := range fns.Symbols {
+    fmt.Println(sym.Name) // only functions whose name contains "user"
+}
 ```
 
 ---
@@ -58,26 +77,16 @@ fmt.Println(len(result.Tokens))  // number of tokens found
 
 ### `parser` package — public surface
 
-| Type | Description |
+| Type / Constructor | Description |
 |---|---|
-| `Parser` | Interface: `Parse(src []byte) (Result, error)` |
-| `Result` | Holds `Language` and `[]Token` |
-| `Token` | Lexical unit with `Kind`, `Value`, `Line`, `Col` |
-| `TokenKind` | Enum: `keyword`, `identifier`, `literal`, `operator`, `comment`, `unknown` |
+| `NewSymbolExtractor()` | Returns a `SymbolExtractor` backed by tree-sitter |
+| `SymbolExtractor` | Interface: `Extract(src []byte, filePath string) (ExtractResult, error)` |
+| `ExtractResult` | Holds `FilePath`, `Language`, `[]Symbol`, and `[]Comment` |
+| `Symbol` | Named construct with `Name`, `Kind`, `StartLine`, `EndLine` |
+| `SymbolKind` | Enum: `function`, `method`, `class`, `struct`, `interface`, `enum`, `module` |
+| `Comment` | Extracted comment with `Context`, `StartLine`, `EndLine` |
 | `Language` | `Name` + `Extension` pair |
-
-### `internal/features/lang` package — core domain
-
-| Type | Description |
-|---|---|
-| `ParseService` | Orchestrates detection + tokenization |
-| `Detector` | Port: `Detect(file SourceFile) ID` |
-| `Tokenizer` | Port: `Tokenize(file SourceFile) ([]RawToken, error)` |
-| `ID` | Canonical language identifier (`"go"`, `"python"`, …) |
-| `SourceFile` | Raw bytes + extension |
-| `ParseResult` | `LanguageID` + `[]RawToken` |
-
-Implement `Detector` and `Tokenizer` with any Tree-sitter grammar binding, then inject them into `NewParseService`.
+| `Filter` | `Apply(ExtractResult) ExtractResult` — filters by `Kinds` and/or `NameContains` |
 
 ---
 
@@ -85,13 +94,14 @@ Implement `Detector` and `Tokenizer` with any Tree-sitter grammar binding, then 
 
 ```
 .
-├── parser/                          # Public API (Parser interface + types)
+├── parser/                          # Public API (SymbolExtractor, Filter, types)
 ├── internal/
-│   └── features/
-│       └── lang/
-│           ├── domain.go            # Data types
-│           ├── port.go              # Detector & Tokenizer interfaces
-│           └── service.go           # ParseService (business logic)
+│   ├── features/
+│   │   ├── lang/                    # Language detection domain
+│   │   └── symbols/                 # Symbol extraction domain
+│   ├── adapter/treesitter/          # Tree-sitter grammar registry and adapters
+│   └── shared/                      # Cross-feature concerns
+├── cmd/idx-parse/                   # CLI: reads a file and prints symbols as JSON
 ├── testdata/
 │   └── fixtures/
 │       ├── inventory.go             # Test helper: All() + MustReadFile()
