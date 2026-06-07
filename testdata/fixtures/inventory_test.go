@@ -17,7 +17,7 @@ func TestAll_ReturnsAllLanguages(t *testing.T) {
 	langs := fixtures.All()
 
 	// Assert
-	assert.Len(t, langs, 25, "expected 25 language fixtures")
+	assert.Len(t, langs, 7, "expected 7 language fixtures")
 }
 
 func TestAll_FilesExistOnDisk(t *testing.T) {

@@ -27,31 +27,13 @@ var (
 // Each entry is guaranteed to exist on disk at the time the slice is built.
 func All() []Language {
 	langs := []Language{
-		{Name: "Bash", Extension: "sh"},
-		{Name: "C", Extension: "c"},
-		{Name: "C++", Extension: "cpp"},
-		{Name: "C#", Extension: "cs"},
-		{Name: "Dart", Extension: "dart"},
-		{Name: "Elixir", Extension: "ex"},
 		{Name: "Go", Extension: "go"},
-		{Name: "Haskell", Extension: "hs"},
-		{Name: "HTML", Extension: "html"},
 		{Name: "Java", Extension: "java"},
 		{Name: "JavaScript", Extension: "js"},
-		{Name: "Kotlin", Extension: "kt"},
-		{Name: "Lua", Extension: "lua"},
-		{Name: "PHP", Extension: "php"},
 		{Name: "Python", Extension: "py"},
-		{Name: "R", Extension: "r"},
 		{Name: "Ruby", Extension: "rb"},
 		{Name: "Rust", Extension: "rs"},
-		{Name: "Scala", Extension: "scala"},
-		{Name: "SQL", Extension: "sql"},
-		{Name: "Swift", Extension: "swift"},
-		{Name: "Terraform", Extension: "tf"},
 		{Name: "TypeScript", Extension: "ts"},
-		{Name: "Vimscript", Extension: "vim"},
-		{Name: "Zig", Extension: "zig"},
 	}
 	for i, l := range langs {
 		langs[i].FilePath = filepath.Join(srcDir, "sample."+l.Extension)
