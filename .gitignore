@@ -26,3 +26,6 @@ Thumbs.db
 
 idx-parse
 /docs/debug/
+
+# Claude Code project settings (contains machine-specific hook paths)
+.claude/settings.json
