@@ -13,7 +13,7 @@ import (
 // Example:
 //
 //	e := parser.NewSymbolExtractor()
-//	result, err := e.Extract(src, ".go")
+//	result, err := e.Extract(src, "service.go")
 func NewSymbolExtractor() SymbolExtractor {
 	reg := treesitter.NewRegistry()
 	det := treesitter.NewExtensionDetector()

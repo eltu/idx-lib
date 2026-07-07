@@ -1,11 +1,10 @@
 package treesitter
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
-	sitter "github.com/smacker/go-tree-sitter"
+	sitter "github.com/tree-sitter/go-tree-sitter"
 
 	"github.com/eltu/idx-lib/internal/features/lang"
 	"github.com/eltu/idx-lib/internal/features/symbols"
@@ -40,10 +39,17 @@ func (e *Extractor) Extract(file lang.SourceFile, langID lang.ID) ([]symbols.Raw
 	if !ok {
 		return nil, nil, nil
 	}
-	root, err := sitter.ParseCtx(context.Background(), file.Content, cfg.grammar)
-	if err != nil {
+
+	parser := sitter.NewParser()
+	defer parser.Close()
+	if err := parser.SetLanguage(cfg.grammar); err != nil {
 		return nil, nil, fmt.Errorf("parse %q: %w", langID, err)
 	}
+
+	tree := parser.Parse(file.Content, nil)
+	defer tree.Close()
+	root := tree.RootNode()
+
 	syms := collectSymbols(cfg.query, root, file.Content)
 	comments := collectComments(cfg.commentQuery, root, file.Content)
 	return syms, comments, nil
@@ -52,12 +58,12 @@ func (e *Extractor) Extract(file lang.SourceFile, langID lang.ID) ([]symbols.Raw
 func collectSymbols(q *sitter.Query, root *sitter.Node, src []byte) []symbols.RawSymbol {
 	qc := sitter.NewQueryCursor()
 	defer qc.Close()
-	qc.Exec(q, root)
+	matches := qc.Matches(q, root, src)
 
 	var result []symbols.RawSymbol
 	for {
-		match, ok := qc.NextMatch()
-		if !ok {
+		match := matches.Next()
+		if match == nil {
 			break
 		}
 		if sym := matchToSymbol(match, q, src); sym != nil {
@@ -68,18 +74,20 @@ func collectSymbols(q *sitter.Query, root *sitter.Node, src []byte) []symbols.Ra
 }
 
 func matchToSymbol(m *sitter.QueryMatch, q *sitter.Query, src []byte) *symbols.RawSymbol {
+	names := q.CaptureNames()
 	var name string
 	var defNode *sitter.Node
 	var kind symbols.Kind
 
 	for _, cap := range m.Captures {
-		cn := q.CaptureNameForId(cap.Index)
+		cn := names[cap.Index]
 		if cn == captureName {
-			name = cap.Node.Content(src)
+			name = cap.Node.Utf8Text(src)
 			continue
 		}
 		if strings.HasPrefix(cn, capturePrefix) {
-			defNode = cap.Node
+			node := cap.Node
+			defNode = &node
 			kind = captureNameToKind(strings.TrimPrefix(cn, capturePrefix))
 		}
 	}
@@ -92,26 +100,29 @@ func matchToSymbol(m *sitter.QueryMatch, q *sitter.Query, src []byte) *symbols.R
 }
 
 func nodeLines(n *sitter.Node) (start, end int) {
-	// tree-sitter rows are 0-indexed; convert to 1-indexed line numbers.
-	return int(n.StartPoint().Row) + 1, int(n.EndPoint().Row) + 1
+	// tree-sitter rows are 0-indexed uint32; convert to 1-indexed int line
+	// numbers. Source files never approach 2^31 lines, so this never overflows.
+	return int(n.StartPosition().Row) + 1, int(n.EndPosition().Row) + 1 //nolint:gosec // G115: row count bounded by real source file size
 }
 
 func collectComments(q *sitter.Query, root *sitter.Node, src []byte) []symbols.RawComment {
 	qc := sitter.NewQueryCursor()
 	defer qc.Close()
-	qc.Exec(q, root)
+	matches := qc.Matches(q, root, src)
 
+	names := q.CaptureNames()
 	var result []symbols.RawComment
 	for {
-		match, ok := qc.NextMatch()
-		if !ok {
+		match := matches.Next()
+		if match == nil {
 			break
 		}
 		for _, cap := range match.Captures {
-			if q.CaptureNameForId(cap.Index) == captureComment {
-				start, end := nodeLines(cap.Node)
+			if names[cap.Index] == captureComment {
+				node := cap.Node
+				start, end := nodeLines(&node)
 				result = append(result, symbols.RawComment{
-					Text:      cap.Node.Content(src),
+					Text:      node.Utf8Text(src),
 					StartLine: start,
 					EndLine:   end,
 				})

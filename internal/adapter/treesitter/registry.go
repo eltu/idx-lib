@@ -4,14 +4,14 @@ import (
 	"embed"
 	"fmt"
 
-	sitter "github.com/smacker/go-tree-sitter"
-	"github.com/smacker/go-tree-sitter/golang"
-	"github.com/smacker/go-tree-sitter/java"
-	"github.com/smacker/go-tree-sitter/javascript"
-	"github.com/smacker/go-tree-sitter/python"
-	"github.com/smacker/go-tree-sitter/ruby"
-	"github.com/smacker/go-tree-sitter/rust"
-	"github.com/smacker/go-tree-sitter/typescript/typescript"
+	sitter "github.com/tree-sitter/go-tree-sitter"
+	tree_sitter_go "github.com/tree-sitter/tree-sitter-go/bindings/go"
+	tree_sitter_java "github.com/tree-sitter/tree-sitter-java/bindings/go"
+	tree_sitter_javascript "github.com/tree-sitter/tree-sitter-javascript/bindings/go"
+	tree_sitter_python "github.com/tree-sitter/tree-sitter-python/bindings/go"
+	tree_sitter_ruby "github.com/tree-sitter/tree-sitter-ruby/bindings/go"
+	tree_sitter_rust "github.com/tree-sitter/tree-sitter-rust/bindings/go"
+	tree_sitter_typescript "github.com/tree-sitter/tree-sitter-typescript/bindings/go"
 
 	"github.com/eltu/idx-lib/internal/features/lang"
 )
@@ -41,13 +41,13 @@ type Registry struct {
 //	reg := treesitter.NewRegistry()
 func NewRegistry() *Registry {
 	r := &Registry{configs: make(map[lang.ID]langConfig)}
-	r.mustRegister(lang.Go, golang.GetLanguage(), "go.scm", "go_comments.scm")
-	r.mustRegister(lang.Python, python.GetLanguage(), "python.scm", "python_comments.scm")
-	r.mustRegister(lang.JavaScript, javascript.GetLanguage(), "javascript.scm", "javascript_comments.scm")
-	r.mustRegister(lang.TypeScript, typescript.GetLanguage(), "typescript.scm", "typescript_comments.scm")
-	r.mustRegister(lang.Java, java.GetLanguage(), "java.scm", "java_comments.scm")
-	r.mustRegister(lang.Ruby, ruby.GetLanguage(), "ruby.scm", "ruby_comments.scm")
-	r.mustRegister(lang.Rust, rust.GetLanguage(), "rust.scm", "rust_comments.scm")
+	r.mustRegister(lang.Go, sitter.NewLanguage(tree_sitter_go.Language()), "go.scm", "go_comments.scm")
+	r.mustRegister(lang.Python, sitter.NewLanguage(tree_sitter_python.Language()), "python.scm", "python_comments.scm")
+	r.mustRegister(lang.JavaScript, sitter.NewLanguage(tree_sitter_javascript.Language()), "javascript.scm", "javascript_comments.scm")
+	r.mustRegister(lang.TypeScript, sitter.NewLanguage(tree_sitter_typescript.LanguageTypescript()), "typescript.scm", "typescript_comments.scm")
+	r.mustRegister(lang.Java, sitter.NewLanguage(tree_sitter_java.Language()), "java.scm", "java_comments.scm")
+	r.mustRegister(lang.Ruby, sitter.NewLanguage(tree_sitter_ruby.Language()), "ruby.scm", "ruby_comments.scm")
+	r.mustRegister(lang.Rust, sitter.NewLanguage(tree_sitter_rust.Language()), "rust.scm", "rust_comments.scm")
 	return r
 }
 
@@ -68,9 +68,9 @@ func (r *Registry) mustCompileQuery(grammar *sitter.Language, filename string) *
 	if err != nil {
 		panic(fmt.Sprintf("treesitter: missing query file %q: %v", filename, err))
 	}
-	q, err := sitter.NewQuery(raw, grammar)
-	if err != nil {
-		panic(fmt.Sprintf("treesitter: invalid query in %q: %v", filename, err))
+	q, qErr := sitter.NewQuery(grammar, string(raw))
+	if qErr != nil {
+		panic(fmt.Sprintf("treesitter: invalid query in %q: %v", filename, qErr))
 	}
 	return q
 }
